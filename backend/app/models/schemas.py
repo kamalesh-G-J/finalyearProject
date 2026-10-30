@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 # ── Column & File Info ─────────────────────────────────────────
@@ -93,8 +93,15 @@ class ConversationHistoryResponse(BaseModel):
 class InsightItem(BaseModel):
     title: str
     description: str
-    severity: str   # "high" | "medium" | "low"
-    category: str   # "trend" | "outlier" | "pattern" | "correlation" | "summary"
+    severity: str = "medium"   # "high" | "medium" | "low"
+    category: str = "trend"   # "trend" | "outlier" | "pattern" | "correlation" | "summary"
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, v):
+        if isinstance(v, list):
+            return "\n".join(str(item) for item in v)
+        return str(v) if v is not None else ""
 
 
 class InsightsResponse(BaseModel):

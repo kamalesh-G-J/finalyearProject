@@ -58,6 +58,18 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
+@app.get("/", tags=["root"])
+async def root():
+    """Root route providing system status and links."""
+    return {
+        "name": "AI Data Analyst API",
+        "status": "online",
+        "docs": "/docs",
+        "frontend": "http://localhost:5173",
+        "version": "1.0.0",
+    }
+
+
 @app.get("/health", tags=["health"])
 async def health_check():
     """Health check endpoint."""

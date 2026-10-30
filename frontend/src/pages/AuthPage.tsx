@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuth } from '../store/AuthContext';
-import { Database, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Database, Lock, Mail, ArrowRight, UserCheck } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -11,14 +11,14 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { session } = useAuth();
+  const { session, isGuest, continueAsGuest } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (session) {
+    if (session || isGuest) {
       navigate('/');
     }
-  }, [session, navigate]);
+  }, [session, isGuest, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,18 +27,23 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInErr) throw signInErr;
       } else {
-        const { error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        // Since confirm email is off, it will log in automatically.
+        const { error: signUpErr } = await supabase.auth.signUp({ email, password });
+        if (signUpErr) throw signUpErr;
       }
     } catch (err: any) {
+      console.error('Authentication error:', err);
       setError(err.message || 'An error occurred during authentication.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGuestEntry = () => {
+    continueAsGuest();
+    navigate('/');
   };
 
   return (
@@ -49,11 +54,17 @@ export default function AuthPage() {
             <Database size={32} />
           </div>
           <h1>DataAnalytics</h1>
-          <p>Welcome back! Please enter your details.</p>
+          <p>
+            {isLogin ? 'Sign in to access your data analysis workspace' : 'Create an account to start analyzing your data'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {error && <div className="auth-error">{error}</div>}
+          {error && (
+            <div className="auth-error">
+              <span>{error}</span>
+            </div>
+          )}
 
           <div className="input-group">
             <label htmlFor="email">Email</label>
@@ -91,7 +102,36 @@ export default function AuthPage() {
           </button>
         </form>
 
-        <div className="auth-footer">
+        <div style={{ margin: '20px 0 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>or</span>
+          <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGuestEntry}
+          className="btn btn-ghost"
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            border: '1px solid var(--border)',
+            padding: '10px 16px',
+            borderRadius: 'var(--r-md)',
+            fontWeight: 500,
+            fontSize: 14,
+            background: 'var(--bg-input)',
+            cursor: 'pointer',
+          }}
+        >
+          <UserCheck size={18} />
+          Continue as Guest / Local Mode
+        </button>
+
+        <div className="auth-footer" style={{ marginTop: 20 }}>
           <p>
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button

@@ -13,7 +13,7 @@ class RedisCache:
         self.enabled = False
         try:
             if settings.redis_url:
-                pool = ConnectionPool.from_url(settings.redis_url, decode_responses=True)
+                pool = ConnectionPool.from_url(settings.redis_url, decode_responses=True, protocol=2)
                 self.redis = Redis(connection_pool=pool)
                 self.enabled = True
                 log.info("redis.init.ok", url=settings.redis_url)

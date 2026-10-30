@@ -28,17 +28,33 @@ class LLMClient:
     """Unified async LLM client with automatic fallbacks via LiteLLM."""
 
     def __init__(self):
-        # Format the Gemini model string for LiteLLM
-        self.primary_model = settings.gemini_model
-        if "gemini" in self.primary_model.lower() and not self.primary_model.startswith("gemini/"):
-            self.primary_model = f"gemini/{self.primary_model}"
-            
-        self.fallbacks = []
-        if settings.groq_api_key:
-            self.fallbacks.append(settings.groq_model)
-        if settings.openrouter_api_key:
-            self.fallbacks.append(settings.openrouter_model)
-            
+        gemini_formatted = settings.gemini_model
+        if "gemini" in gemini_formatted.lower() and not gemini_formatted.startswith("gemini/"):
+            gemini_formatted = f"gemini/{gemini_formatted}"
+
+        provider = (settings.llm_provider or "openrouter").lower()
+        if provider == "openrouter" and settings.openrouter_api_key:
+            self.primary_model = settings.openrouter_model
+            self.fallbacks = []
+            if settings.gemini_api_key:
+                self.fallbacks.append(gemini_formatted)
+            if settings.groq_api_key:
+                self.fallbacks.append(settings.groq_model)
+        elif provider == "groq" and settings.groq_api_key:
+            self.primary_model = settings.groq_model
+            self.fallbacks = []
+            if settings.openrouter_api_key:
+                self.fallbacks.append(settings.openrouter_model)
+            if settings.gemini_api_key:
+                self.fallbacks.append(gemini_formatted)
+        else:
+            self.primary_model = gemini_formatted
+            self.fallbacks = []
+            if settings.openrouter_api_key:
+                self.fallbacks.append(settings.openrouter_model)
+            if settings.groq_api_key:
+                self.fallbacks.append(settings.groq_model)
+
         log.info("llm.init", primary=self.primary_model, fallbacks=self.fallbacks)
 
     # ── Generation ────────────────────────────────────────────────
